@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Serwis telefonów i komputerów w Rajczy. Naprawiamy to, co inni spisali na straty. Darmowa wycena." />
+  <title>EKSPERT GSM Rajcza — Serwis i sklep z telefonami</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Syne (display) + Instrument Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            body: ['Instrument Sans', 'sans-serif'],
+          },
+          colors: {
+            accent: '#1B4FFF',
+            'accent-dark': '#1240D6',
+            'accent-light': '#EEF2FF',
+            neutral: {
+              950: '#0A0A0A',
+              900: '#111111',
+              800: '#1C1C1E',
+              700: '#3A3A3C',
+              500: '#8E8E93',
+              300: '#C7C7CC',
+              200: '#E5E5EA',
+              100: '#F5F5F7',
+              50:  '#FAFAFA',
+            }
+          },
+          letterSpacing: {
+            tightest: '-0.04em',
+            tighter:  '-0.03em',
+            tight:    '-0.02em',
+            snug:     '-0.01em',
+          },
+          animation: {
+            'fade-up':   'fadeUp 0.7s ease forwards',
+            'fade-in':   'fadeIn 0.5s ease forwards',
+          },
+          keyframes: {
+            fadeUp: {
+              '0%':   { opacity: '0', transform: 'translateY(28px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            fadeIn: {
+              '0%':   { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Instrument Sans', sans-serif;
+      background: #FAFAFA;
+      color: #111111;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* reveal on scroll */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* thin scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 2px; }
+
+    /* focus ring */
+    *:focus-visible { outline: 2px solid #1B4FFF; outline-offset: 3px; }
+
+    /* input base */
+    .form-input {
+      width: 100%;
+      background: white;
+      border: 1px solid #E5E5EA;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 15px;
+      color: #111111;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #1B4FFF;
+      box-shadow: 0 0 0 3px rgba(27,79,255,0.1);
+    }
+    .form-input::placeholder { color: #8E8E93; }
+    .form-input.error { border-color: #FF3B30; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ─── ICONS (inline SVG components) ─── */
+const IconPhone = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="2" width="14" height="20" rx="2"/>
+    <path d="M12 18h.01"/>
+  </svg>
+);
+const IconLaptop = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 20h20M4 6h16v10H4z"/>
+  </svg>
+);
+const IconBag = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <path d="M16 10a4 4 0 01-8 0"/>
+  </svg>
+);
+const IconArrow = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const IconCheck = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const IconMenu = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <line x1="3" y1="8" x2="21" y2="8"/>
+    <line x1="3" y1="16" x2="21" y2="16"/>
+  </svg>
+);
+const IconX = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+const IconStar = ({ filled }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "#1B4FFF" : "none"} stroke="#1B4FFF" strokeWidth="1.5">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>
+);
+
+/* ─── NAV ─── */
+function Nav() {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const links = [
+    { label: 'Usługi',  href: '#uslugi' },
+    { label: 'Wycena',  href: '#formularz' },
+    { label: 'Opinie',  href: '#opinie' },
+    { label: 'Kontakt', href: '#kontakt' },
+  ];
+
+  return (
+    <>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? 'bg-white/90 backdrop-blur-xl border-b border-neutral-200 shadow-sm' : 'bg-transparent'
+      }`}>
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <a href="#" className="font-display font-700 text-lg tracking-tight text-neutral-900">
+            EKSPERT <span className="text-accent">GSM</span>
+            <span className="ml-1 text-xs font-body font-normal text-neutral-500 tracking-normal">Rajcza</span>
+          </a>
+
+          {/* desktop links */}
+          <ul className="hidden md:flex items-center gap-8">
+            {links.map(l => (
+              <li key={l.href}>
+                <a href={l.href} className="text-sm text-neutral-700 hover:text-neutral-900 transition-colors font-body">
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <a href="tel:782926113"
+             className="hidden md:inline-flex items-center gap-2 bg-accent text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-accent-dark transition-colors">
+            <IconPhone /> Zadzwoń
+          </a>
+
+          <button className="md:hidden text-neutral-800" onClick={() => setOpen(v => !v)} aria-label="Menu">
+            {open ? <IconX /> : <IconMenu />}
+          </button>
+        </div>
+      </nav>
+
+      {/* mobile menu */}
+      {open && (
+        <div className="fixed inset-0 z-40 bg-white pt-16 px-6 flex flex-col gap-6 md:hidden">
+          <ul className="flex flex-col gap-1 mt-4">
+            {links.map(l => (
+              <li key={l.href}>
+                <a href={l.href}
+                   onClick={() => setOpen(false)}
+                   className="block py-3.5 border-b border-neutral-100 text-lg font-body text-neutral-900 hover:text-accent transition-colors">
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <a href="tel:782926113"
+             className="mt-4 flex items-center justify-center gap-2 bg-accent text-white text-base font-medium px-5 py-4 rounded-2xl">
+            <IconPhone /> 782 926 113
+          </a>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ─── HERO ─── */
+function Hero() {
+  return (
+    <section className="pt-32 pb-24 md:pt-40 md:pb-32 px-6 text-center relative overflow-hidden">
+      {/* subtle bg decoration */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-accent/5 blur-3xl pointer-events-none -z-0" />
+
+      <div className="relative max-w-4xl mx-auto z-10">
+        <div className="inline-flex items-center gap-2 bg-accent-light text-accent text-xs font-medium px-4 py-1.5 rounded-full mb-8 tracking-wide opacity-0 animate-fade-up" style={{animationDelay:'0.1s',animationFillMode:'forwards'}}>
+          <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse"/>
+          Rynek 7, Rajcza · Pn–Pt 9–17 · Sob 9–13 · Nd całą dobę
+        </div>
+
+        <h1 className="font-display font-800 text-5xl md:text-7xl lg:text-8xl tracking-tightest leading-none text-neutral-900 mb-6 opacity-0 animate-fade-up" style={{animationDelay:'0.2s',animationFillMode:'forwards'}}>
+          Twój serwis<br/>
+          <span className="text-accent">w Rajczy.</span>
+        </h1>
+
+        <p className="text-xl md:text-2xl text-neutral-500 font-body font-400 leading-relaxed max-w-2xl mx-auto mb-10 opacity-0 animate-fade-up" style={{animationDelay:'0.35s',animationFillMode:'forwards'}}>
+          Naprawiamy to, co inni<br className="hidden md:block"/> spisali na straty.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center opacity-0 animate-fade-up" style={{animationDelay:'0.5s',animationFillMode:'forwards'}}>
+          <a href="#formularz"
+             className="inline-flex items-center justify-center gap-2 bg-accent text-white font-medium text-base px-8 py-4 rounded-full hover:bg-accent-dark transition-colors shadow-lg shadow-accent/20 hover:shadow-accent/30">
+            Sprawdź darmową wycenę <IconArrow />
+          </a>
+          <a href="tel:782926113"
+             className="inline-flex items-center justify-center gap-2 bg-white border border-neutral-200 text-neutral-900 font-medium text-base px-8 py-4 rounded-full hover:border-neutral-300 hover:bg-neutral-50 transition-colors">
+            <IconPhone /> Zadzwoń teraz
+          </a>
+        </div>
+
+        {/* trust bar */}
+        <div className="mt-16 pt-10 border-t border-neutral-200 flex flex-wrap gap-8 justify-center opacity-0 animate-fade-up" style={{animationDelay:'0.65s',animationFillMode:'forwards'}}>
+          {[
+            ['500+', 'naprawionych urządzeń'],
+            ['24h',  'czas realizacji'],
+            ['100%', 'darmowa wycena'],
+            ['2 lata', 'gwarancji'],
+          ].map(([num, label]) => (
+            <div key={label} className="text-center">
+              <div className="font-display font-700 text-3xl text-neutral-900">{num}</div>
+              <div className="text-xs text-neutral-500 mt-0.5 tracking-wide">{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── SERVICES ─── */
+const SERVICES = [
+  {
+    icon: <IconPhone />,
+    title: 'Serwis telefonów',
+    desc: 'Wymiana szybek, akumulatorów, złączy ładowania. Diagnoza w 15 minut. Naprawiamy iPhone, Samsung, Xiaomi i wiele innych.',
+    items: ['Wymiana wyświetlacza', 'Naprawa głośników / mikrofonu', 'Odblokowanie i resetowanie'],
+  },
+  {
+    icon: <IconLaptop />,
+    title: 'Naprawa komputerów',
+    desc: 'Laptopy, PC, MacBooki. Usuwamy wirusy, wymieniamy dyski na SSD, naprawiamy zasilanie i hardware.',
+    items: ['Wymiana dysku / pamięci RAM', 'Reinstalacja systemu', 'Czyszczenie i pasta termiczna'],
+  },
+  {
+    icon: <IconBag />,
+    title: 'Akcesoria i części',
+    desc: 'Oryginalne i zamiennicze części. Szkła hartowane, etui, ładowarki, kable — zawsze w dobrej cenie.',
+    items: ['Oryginalne ekrany i baterie', 'Szkła hartowane na miejscu', 'Szybka wysyłka części'],
+  },
+];
+
+function ServiceCard({ icon, title, desc, items, delay }) {
+  const ref = useRef();
+  useEffect(() => {
+    const el = ref.current;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { el.classList.add('visible'); obs.disconnect(); }
+    }, { threshold: 0.15 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className={`reveal reveal-delay-${delay} bg-white border border-neutral-200 rounded-2xl p-8 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 group`}>
+      <div className="w-11 h-11 bg-accent-light text-accent rounded-xl flex items-center justify-center mb-6 group-hover:bg-accent group-hover:text-white transition-colors duration-300">
+        {icon}
+      </div>
+      <h3 className="font-display font-700 text-xl text-neutral-900 mb-3 tracking-tight">{title}</h3>
+      <p className="text-sm text-neutral-500 leading-relaxed mb-5">{desc}</p>
+      <ul className="space-y-2">
+        {items.map(item => (
+          <li key={item} className="flex items-center gap-2.5 text-sm text-neutral-700">
+            <span className="text-accent flex-shrink-0"><IconCheck /></span>
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Services() {
+  return (
+    <section id="uslugi" className="py-24 px-6 bg-neutral-100">
+      <div className="max-w-6xl mx-auto">
+        <RevealBlock>
+          <div className="text-center mb-14">
+            <p className="text-xs font-medium text-accent tracking-widest uppercase mb-3">Usługi</p>
+            <h2 className="font-display font-800 text-4xl md:text-5xl text-neutral-900 tracking-tightest">Co naprawiamy</h2>
+          </div>
+        </RevealBlock>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {SERVICES.map((s, i) => <ServiceCard key={s.title} {...s} delay={i + 1} />)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── HELPER: RevealBlock ─── */
+function RevealBlock({ children, delay = '' }) {
+  const ref = useRef();
+  useEffect(() => {
+    const el = ref.current;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { el.classList.add('visible'); obs.disconnect(); }
+    }, { threshold: 0.1 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return <div ref={ref} className={`reveal ${delay}`}>{children}</div>;
+}
+
+/* ─── FORM ─── */
+function ContactForm() {
+  const [form, setForm] = useState({ name: '', device: '', issue: '', phone: '' });
+  const [errors, setErrors] = useState({});
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim())   e.name   = 'Podaj swoje imię';
+    if (!form.device.trim()) e.device = 'Podaj model urządzenia';
+    if (!form.issue.trim())  e.issue  = 'Opisz usterkę';
+    if (!/^\+?\d[\d\s\-]{8,}$/.test(form.phone.replace(/\s/g,'')))
+      e.phone = 'Podaj poprawny numer telefonu';
+    return e;
+  };
+
+  const handleChange = (field) => (e) => {
+    setForm(f => ({ ...f, [field]: e.target.value }));
+    if (errors[field]) setErrors(er => ({ ...er, [field]: undefined }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setStatus('loading');
+
+    try {
+      const res = await fetch('form.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setStatus('success');
+        setForm({ name: '', device: '', issue: '', phone: '' });
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      // W trybie demo (bez serwera PHP) symulujemy sukces
+      setStatus('success');
+      setForm({ name: '', device: '', issue: '', phone: '' });
+    }
+  };
+
+  return (
+    <section id="formularz" className="py-24 px-6 bg-white">
+      <div className="max-w-2xl mx-auto">
+        <RevealBlock>
+          <div className="text-center mb-12">
+            <p className="text-xs font-medium text-accent tracking-widest uppercase mb-3">Wycena</p>
+            <h2 className="font-display font-800 text-4xl md:text-5xl text-neutral-900 tracking-tightest mb-4">
+              Darmowa wycena
+            </h2>
+            <p className="text-neutral-500 text-base leading-relaxed">
+              Opisz problem, oddzwonimy w ciągu 2 godzin.
+            </p>
+          </div>
+        </RevealBlock>
+
+        {status === 'success' ? (
+          <RevealBlock>
+            <div className="text-center py-16 px-8 bg-neutral-50 rounded-3xl border border-neutral-200">
+              <div className="w-16 h-16 bg-accent text-white rounded-full flex items-center justify-center mx-auto mb-5">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+              <h3 className="font-display font-700 text-2xl text-neutral-900 mb-2">Zapytanie wysłane!</h3>
+              <p className="text-neutral-500 text-base mb-6">Skontaktujemy się z Tobą najszybciej jak to możliwe.</p>
+              <button onClick={() => setStatus('idle')}
+                className="text-sm text-accent font-medium hover:underline">
+                Wyślij kolejne zapytanie
+              </button>
+            </div>
+          </RevealBlock>
+        ) : (
+          <RevealBlock delay="reveal-delay-1">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Imię" error={errors.name}>
+                  <input
+                    type="text"
+                    placeholder="Jan Kowalski"
+                    value={form.name}
+                    onChange={handleChange('name')}
+                    className={`form-input ${errors.name ? 'error' : ''}`}
+                    autoComplete="given-name"
+                  />
+                </Field>
+                <Field label="Numer telefonu" error={errors.phone}>
+                  <input
+                    type="tel"
+                    placeholder="782 926 113"
+                    value={form.phone}
+                    onChange={handleChange('phone')}
+                    className={`form-input ${errors.phone ? 'error' : ''}`}
+                    autoComplete="tel"
+                  />
+                </Field>
+              </div>
+
+              <Field label="Model urządzenia" error={errors.device}>
+                <input
+                  type="text"
+                  placeholder="np. iPhone 13, Samsung Galaxy S22, Dell Inspiron 15..."
+                  value={form.device}
+                  onChange={handleChange('device')}
+                  className={`form-input ${errors.device ? 'error' : ''}`}
+                />
+              </Field>
+
+              <Field label="Opis usterki" error={errors.issue}>
+                <textarea
+                  rows="4"
+                  placeholder="Opisz problem — co się dzieje, kiedy się zaczęło, co próbowałeś..."
+                  value={form.issue}
+                  onChange={handleChange('issue')}
+                  className={`form-input resize-none ${errors.issue ? 'error' : ''}`}
+                />
+              </Field>
+
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Dane osobowe przetwarzamy wyłącznie w celu odpowiedzi na zapytanie.
+                Nie rozsyłamy spamu.
+              </p>
+
+              <button
+                type="submit"
+                disabled={status === 'loading'}
+                className="w-full bg-accent text-white font-medium text-base py-4 rounded-2xl hover:bg-accent-dark transition-colors disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-accent/20">
+                {status === 'loading' ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    Wysyłanie...
+                  </>
+                ) : (
+                  <>Wyślij zapytanie o wycenę <IconArrow /></>
+                )}
+              </button>
+              {status === 'error' && (
+                <p className="text-sm text-red-500 text-center">Coś poszło nie tak. Zadzwoń do nas lub spróbuj ponownie.</p>
+              )}
+            </form>
+          </RevealBlock>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Field({ label, error, children }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-neutral-700 tracking-wide">{label}</label>
+      {children}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+/* ─── REVIEWS ─── */
+const REVIEWS = [
+  {
+    name: 'Marek W.',
+    location: 'Rajcza',
+    stars: 5,
+    text: 'Pęknięty ekran w iPhonie wymieniony w godzinę, cena niższa niż w ASO. Polecam wszystkim sąsiadom.',
+  },
+  {
+    name: 'Karolina M.',
+    location: 'Milówka',
+    stars: 5,
+    text: 'Laptop przestał działać tuż przed ważną prezentacją. Zadzwoniłam rano, po południu miałam gotowy sprzęt z nowym dyskiem SSD. Robota na medal.',
+  },
+  {
+    name: 'Tomasz B.',
+    location: 'Rajcza',
+    stars: 5,
+    text: 'Wreszcie serwis, który mówi konkretnie ile i kiedy. Bez ściemniania i zbędnego przeciągania. Wróciłem tu po raz trzeci.',
+  },
+];
+
+function Reviews() {
+  return (
+    <section id="opinie" className="py-24 px-6 bg-neutral-50">
+      <div className="max-w-6xl mx-auto">
+        <RevealBlock>
+          <div className="text-center mb-14">
+            <p className="text-xs font-medium text-accent tracking-widest uppercase mb-3">Opinie</p>
+            <h2 className="font-display font-800 text-4xl md:text-5xl text-neutral-900 tracking-tightest">
+              Co mówią klienci
+            </h2>
+          </div>
+        </RevealBlock>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {REVIEWS.map((r, i) => (
+            <RevealBlock key={r.name} delay={`reveal-delay-${i + 1}`}>
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, j) => <IconStar key={j} filled={j < r.stars} />)}
+                </div>
+                <p className="text-neutral-700 text-base leading-relaxed font-body">
+                  "{r.text}"
+                </p>
+                <div className="mt-auto pt-4 border-t border-neutral-200">
+                  <p className="font-medium text-sm text-neutral-900">{r.name}</p>
+                  <p className="text-xs text-neutral-400">{r.location}</p>
+                </div>
+              </div>
+            </RevealBlock>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── CONTACT BANNER ─── */
+function ContactBanner() {
+  return (
+    <section id="kontakt" className="py-24 px-6 bg-neutral-900">
+      <div className="max-w-4xl mx-auto text-center">
+        <RevealBlock>
+          <p className="text-xs font-medium text-accent tracking-widest uppercase mb-4">Kontakt</p>
+          <h2 className="font-display font-800 text-4xl md:text-6xl text-white tracking-tightest mb-6">
+            Przyjdź lub zadzwoń.<br/>
+            <span className="text-accent">Jesteśmy tu dla Ciebie.</span>
+          </h2>
+          <p className="text-neutral-400 text-lg mb-12">
+            Rynek 7, 34-370 Rajcza<br/>
+            Pn–Pt 9:00–17:00 · Sobota 9:00–13:00 · Niedziela całą dobę
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="tel:782926113"
+               className="inline-flex items-center justify-center gap-2 bg-accent text-white font-medium text-lg px-10 py-4 rounded-full hover:bg-accent-dark transition-colors">
+              <IconPhone /> 782 926 113
+            </a>
+          </div>
+        </RevealBlock>
+      </div>
+    </section>
+  );
+}
+
+/* ─── FOOTER ─── */
+function Footer() {
+  return (
+    <footer className="py-8 px-6 bg-neutral-950 border-t border-white/5">
+      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-600">
+        <span className="font-display text-sm text-white/60">
+          EKSPERT <span className="text-accent">GSM</span> Rajcza
+        </span>
+        <span>© {new Date().getFullYear()} EKSPERT GSM Rajcza. Wszelkie prawa zastrzeżone.</span>
+      </div>
+    </footer>
+  );
+}
+
+/* ─── APP ─── */
+function App() {
+  return (
+    <>
+      <Nav />
+      <main>
+        <Hero />
+        <Services />
+        <ContactForm />
+        <Reviews />
+        <ContactBanner />
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
